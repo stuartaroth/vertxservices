@@ -1,6 +1,7 @@
 package org.stuartaroth.vertxservices.staticservices;
 
 public class AddressService {
+    public static final String BOOK_ALL = "book.all";
     public static final String BOOK_CREATOR = "book.creator";
     public static final String BOOK_GENRE = "book.genre";
 

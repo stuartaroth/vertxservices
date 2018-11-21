@@ -5,6 +5,8 @@ import io.reactivex.subjects.PublishSubject;
 import io.vertx.core.Vertx;
 import io.vertx.core.Context;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.CompositeFuture;
 import io.vertx.reactivex.core.Future;
@@ -25,11 +27,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.stuartaroth.vertxservices.staticservices.AddressService.BOOK_GENRE;
+import static org.stuartaroth.vertxservices.staticservices.AddressService.MOVIE_GENRE;
 import static org.stuartaroth.vertxservices.staticservices.PortService.BOOK_PORT;
 import static org.stuartaroth.vertxservices.staticservices.PortService.MEDIA_PORT;
 import static org.stuartaroth.vertxservices.staticservices.PortService.MOVIE_PORT;
 
 public class MediaVerticle extends AbstractVerticle {
+    private static Logger logger = LoggerFactory.getLogger(MediaVerticle.class);
 
     @Override
     public void init(Vertx vertx, Context context) {
@@ -73,10 +78,10 @@ public class MediaVerticle extends AbstractVerticle {
             } else {
 
                 Future<Message<String>> bookFuture = Future.future();
-                eventBus.send("book.genre", genre, bookFuture.completer());
+                eventBus.send(BOOK_GENRE, genre, bookFuture.completer());
 
                 Future<Message<String>> movieFuture = Future.future();
-                eventBus.send("movie.genre", genre, movieFuture.completer());
+                eventBus.send(MOVIE_GENRE, genre, movieFuture.completer());
 
                 CompositeFuture.all(bookFuture, movieFuture).setHandler(result -> {
                     List<Book> books = JsonService.read(bookFuture.result().body(), JsonService.LIST_OF_BOOK);
@@ -97,9 +102,9 @@ public class MediaVerticle extends AbstractVerticle {
 
         single.subscribe(
                 server -> {
-                    System.out.println(this.getClass().toString() + " started on http://localhost:" + MEDIA_PORT);
+                    logger.info("started on http://localhost:" + MEDIA_PORT);
                 }, failure -> {
-                    System.out.println("error: " + failure.getMessage());
+                    logger.error("error: {}", failure.getMessage());
                 });
     }
 }

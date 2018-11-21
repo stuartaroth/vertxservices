@@ -20,6 +20,10 @@ public class MovieDataService {
         );
     }
 
+    Observable<List<Movie>> getAllMovies() {
+        return Observable.fromArray(movies);
+    }
+
     Observable<List<Movie>> searchMoviesByCreator(String search) {
         String loweredSearch = search.toLowerCase();
         return Observable.fromArray(

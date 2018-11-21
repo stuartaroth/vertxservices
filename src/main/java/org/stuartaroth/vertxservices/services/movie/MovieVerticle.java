@@ -1,28 +1,26 @@
 package org.stuartaroth.vertxservices.services.movie;
 
-import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.subjects.PublishSubject;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.Context;
 
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.core.eventbus.EventBus;
-import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.core.http.HttpServerRequest;
-import org.stuartaroth.vertxservices.models.Movie;
 import org.stuartaroth.vertxservices.staticservices.JsonService;
 
-import java.util.List;
 
 import static org.stuartaroth.vertxservices.staticservices.AddressService.MOVIE_CREATOR;
 import static org.stuartaroth.vertxservices.staticservices.AddressService.MOVIE_GENRE;
 import static org.stuartaroth.vertxservices.staticservices.PortService.MOVIE_PORT;
 
 public class MovieVerticle extends AbstractVerticle {
+    private static Logger logger = LoggerFactory.getLogger(MovieVerticle.class);
 
     @Override
     public void init(Vertx vertx, Context context) {
@@ -65,7 +63,7 @@ public class MovieVerticle extends AbstractVerticle {
 
             } else {
 
-                eventBus.send(MOVIE_CREATOR, creator, handler -> {
+                eventBus.send(MOVIE_GENRE, genre, handler -> {
                     request.response().putHeader("Content-Type", "application/json").end(handler.result().body().toString());
                 });
 
@@ -79,9 +77,9 @@ public class MovieVerticle extends AbstractVerticle {
 
         single.subscribe(
                 server -> {
-                    System.out.println(this.getClass().toString() + " started on http://localhost:" + MOVIE_PORT);
+                    logger.info("started on http://localhost:" + MOVIE_PORT);
                 }, failure -> {
-                    System.out.println("error: " + failure.getMessage());
+                    logger.error("error: {}", failure.getMessage());
                 });
     }
 }
