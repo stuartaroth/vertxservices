@@ -18,6 +18,8 @@ import org.stuartaroth.vertxservices.staticservices.JsonService;
 
 import java.util.List;
 
+import static org.stuartaroth.vertxservices.staticservices.AddressService.MOVIE_CREATOR;
+import static org.stuartaroth.vertxservices.staticservices.AddressService.MOVIE_GENRE;
 import static org.stuartaroth.vertxservices.staticservices.PortService.MOVIE_PORT;
 
 public class MovieVerticle extends AbstractVerticle {
@@ -30,14 +32,19 @@ public class MovieVerticle extends AbstractVerticle {
 
         EventBus eventBus = this.vertx.eventBus();
 
-        Handler<Message<String>> searchMoviesByGenre = event -> {
-            String genre = event.body();
+        eventBus.consumer(MOVIE_CREATOR, event -> {
+            String creator = event.body().toString();
+            movieDataService.searchMoviesByCreator(creator).subscribe(results -> {
+                event.reply(JsonService.write(results));
+            });
+        });
+
+        eventBus.consumer(MOVIE_GENRE, event -> {
+            String genre = event.body().toString();
             movieDataService.searchMoviesByGenre(genre).subscribe(results -> {
                 event.reply(JsonService.write(results));
             });
-        };
-
-        eventBus.consumer("movie.genre", searchMoviesByGenre);
+        });
 
         PublishSubject<HttpServerRequest> requestPublishSubject = PublishSubject.create();
         requestPublishSubject.subscribe(request -> {
@@ -52,16 +59,14 @@ public class MovieVerticle extends AbstractVerticle {
 
             } else if (creator != null) {
 
-                Observable<List<Movie>> movies = movieDataService.searchMoviesByCreator(creator);
-                movies.subscribe(results -> {
-                    request.response().putHeader("Content-Type", "application/json").end(JsonService.write(results));
+                eventBus.send(MOVIE_CREATOR, creator, handler -> {
+                    request.response().putHeader("Content-Type", "application/json").end(handler.result().body().toString());
                 });
 
             } else {
 
-                Observable<List<Movie>> books = movieDataService.searchMoviesByGenre(genre);
-                books.subscribe(results -> {
-                    request.response().putHeader("Content-Type", "application/json").end(JsonService.write(results));
+                eventBus.send(MOVIE_CREATOR, creator, handler -> {
+                    request.response().putHeader("Content-Type", "application/json").end(handler.result().body().toString());
                 });
 
             }

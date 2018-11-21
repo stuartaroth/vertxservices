@@ -1,23 +1,19 @@
 package org.stuartaroth.vertxservices.services.book;
 
-import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.subjects.PublishSubject;
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.Context;
 
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.core.eventbus.EventBus;
-import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.core.http.HttpServerRequest;
-import org.stuartaroth.vertxservices.models.Book;
 import org.stuartaroth.vertxservices.staticservices.JsonService;
 
-import java.util.List;
-
+import static org.stuartaroth.vertxservices.staticservices.AddressService.BOOK_CREATOR;
+import static org.stuartaroth.vertxservices.staticservices.AddressService.BOOK_GENRE;
 import static org.stuartaroth.vertxservices.staticservices.PortService.BOOK_PORT;
 
 public class BookVerticle extends AbstractVerticle {
@@ -30,14 +26,19 @@ public class BookVerticle extends AbstractVerticle {
 
         EventBus eventBus = this.vertx.eventBus();
 
-        Handler<Message<String>> searchBooksByGenre = event -> {
-            String genre = event.body();
+        eventBus.consumer(BOOK_CREATOR, event -> {
+            String creator = event.body().toString();
+            bookDataService.searchBooksByCreator(creator).subscribe(results -> {
+                event.reply(JsonService.write(results));
+            });
+        });
+
+        eventBus.consumer(BOOK_GENRE, event -> {
+            String genre = event.body().toString();
             bookDataService.searchBooksByGenre(genre).subscribe(results -> {
                 event.reply(JsonService.write(results));
             });
-        };
-
-        eventBus.consumer("book.genre", searchBooksByGenre);
+        });
 
         PublishSubject<HttpServerRequest> requestPublishSubject = PublishSubject.create();
         requestPublishSubject.subscribe(request -> {
@@ -52,16 +53,14 @@ public class BookVerticle extends AbstractVerticle {
 
             } else if (creator != null) {
 
-                Observable<List<Book>> books = bookDataService.searchBooksByCreator(creator);
-                books.subscribe(results -> {
-                    request.response().putHeader("Content-Type", "application/json").end(JsonService.write(results));
+                eventBus.send(BOOK_CREATOR, creator, handler -> {
+                    request.response().putHeader("Content-Type", "application/json").end(handler.result().body().toString());
                 });
 
             } else {
 
-                Observable<List<Book>> books = bookDataService.searchBooksByGenre(genre);
-                books.subscribe(results -> {
-                    request.response().putHeader("Content-Type", "application/json").end(JsonService.write(results));
+                eventBus.send(BOOK_GENRE, genre, handler -> {
+                    request.response().putHeader("Content-Type", "application/json").end(handler.result().body().toString());
                 });
 
             }
